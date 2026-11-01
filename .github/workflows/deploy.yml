@@ -1,4 +1,4 @@
-name: Deploy react 
+name: Deploy react
 
 on:
   push:
@@ -10,25 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      #- name: Login to Docker Hub
-        run: docker login -u "${{ secrets.DOCKER_USERNAME }}" -p "${{ secrets.DOCKER_PASSWORD }}"
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      #- name: Build Docker image
-        run: docker build -t marian/react-test -f Dockerfile.dev .
+      - name: Build and test React image
+        run: |
+          docker build -t marian/react-test -f Dockerfile.dev .
+          docker run -e CI=true marian/react-test npm run test
 
-     # - name: Run tests
-        run: docker run -e CI=true marian/react-test npm run test
+      - name: Build microservices images
+        run: |
+          docker build -t marianghaly/multi-client ./microservices/client
+          docker build -t marianghaly/multi-nginx ./microservices/nginx
+          docker build -t marianghaly/multi-server ./microservices/server
+          docker build -t marianghaly/multi-worker ./microservices/worker
 
-        run: docker build -t marianghaly/multi-client ./microservices/client
-        run: docker build -t marianghaly/multi-nginx ./microservices/nginx
-        run: docker build -t marianghaly/multi-server ./microservices/server
-        run: docker build -t marianghaly/multi-worker ./microservices/worker
-
-        run: docker push marianghaly/multi-client
-        run: docker push marianghaly/multi-nginx
-        run: docker push marianghaly/multi-server
-        run: docker push marianghaly/multi-worker
-        
-
+      - name: Push microservices images
+        run: |
+          docker push marianghaly/multi-client
+          docker push marianghaly/multi-nginx
+          docker push marianghaly/multi-server
+          docker push marianghaly/multi-worker
